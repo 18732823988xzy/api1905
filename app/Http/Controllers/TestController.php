@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 class TestController extends Controller
 {
     public function alipay(){
+        $ali_gateway = 'https://openapi.alipaydev.com/gateway.do';  //支付网关
         $appid='2016101400681522';
         $method='alipay.trade.page.pay';
         $charset='utf-8';
@@ -15,6 +16,7 @@ class TestController extends Controller
         $timestamp=date('Y-m-d H:i:s');
         $version='1.0';
         $notify_url='http://1905xzy.comcto.com/alipay/notify';   //支付异步通知地址
+        $return_url='http://1905xzy.comcto.com/alipay/notify';
         $biz_content='';
 
 
@@ -40,7 +42,7 @@ class TestController extends Controller
             'notify_url'=>$notify_url,
             'biz_content'=>json_encode($request_param)
         ];
-        echo '<pre>';print_r($param);echo '</pre>';
+//        echo '<pre>';print_r($param);echo '</pre>';
         //字典序排序
         ksort($param);
         //拼接key=value&key2=value2...
@@ -48,12 +50,26 @@ class TestController extends Controller
             foreach ($param as $k=>$v){
                 $str .= $k . '=' . $v . '&';
             }
-
+        $str = rtrim($str,'&');
             //计算机签名
+        $key = storage_path('keys/app_priv');
+        $priKey = file_get_contents($key);
+        $res = openssl_get_privatekey($priKey);
+        //var_dump($res);echo '</br>';
+        openssl_sign($str, $sign, $res, OPENSSL_ALGO_SHA256);       //计算签名
+        $sign = base64_encode($sign);
+        $param['sign'] = $sign;
+        // 4 urlencode
+        $param_str = '?';
+        foreach($param as $k=>$v){
+            $param_str .= $k.'='.urlencode($v) . '&';
+        }
+        $param_str = rtrim($param_str,'&');
+        $url = $ali_gateway . $param_str;
+        //发送GET请求
+        //echo $url;die;
+        header("Location:".$url);
 
-
-
-        $url='https://openapi.alipaydev.com/gateway.do?';
 
     }
 }
